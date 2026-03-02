@@ -1,0 +1,12 @@
+# Build outputs
+dirless-cli
+dist/
+
+# Crystal
+lib/
+.shards/
+bin/
+
+# Editor
+.DS_Store
+*.swp

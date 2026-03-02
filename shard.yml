@@ -1,0 +1,28 @@
+name: dirless-cli
+version: 0.1.0
+
+description: CLI for enrolling and managing Dirless identity nodes
+
+authors:
+  - Dirless <hello@dirless.io>
+
+license: Private
+
+crystal: ">= 1.9.0"
+
+dependencies:
+  age-crystal:
+    git: git@github.com:dirless/age-crystal.git
+    branch: main
+
+  x509-crystal:
+    github: dirless/x509-crystal
+    branch: main
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+
+  webmock:
+    github: manastech/webmock.cr
+    branch: master

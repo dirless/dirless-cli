@@ -1,0 +1,18 @@
+version: 2.0
+shards:
+  age-crystal:
+    git: git@github.com:dirless/age-crystal.git
+    version: 0.1.0+git.commit.b3bf8e375e48aa91af5f42191e3ec597a680c6bc
+
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.6.4
+
+  webmock:
+    git: https://github.com/manastech/webmock.cr.git
+    version: 0.14.0+git.commit.fde6b20d5b80401a967e044b1a3e80ee391bed60
+
+  x509-crystal:
+    git: https://github.com/dirless/x509-crystal.git
+    version: 0.1.0+git.commit.81b748f624e7f5eb275a5840f3f2353284fa4558
+
