@@ -13,6 +13,27 @@ module Dirless
     module Commands
       class EnrollError < Exception; end
 
+      private struct EnrollOptions
+        getter token : String
+        getter server : String
+        getter tenant_id : String?
+        getter ca_cert_path : String?
+        getter ca_key_path : String?
+        getter? overwrite : Bool
+        getter? regenerate_hmac : Bool
+
+        def initialize(
+          @token : String,
+          @server : String,
+          @tenant_id : String?,
+          @ca_cert_path : String?,
+          @ca_key_path : String?,
+          @overwrite : Bool,
+          @regenerate_hmac : Bool,
+        )
+        end
+      end
+
       class Enroll
         CERT_VALIDITY_DAYS = 3650 # 10 years
 
@@ -24,10 +45,14 @@ module Dirless
         end
 
         def run(args : Array(String)) : Nil
-          # ── option defaults ──────────────────────────────────────────────
-          tenant_id : String? = nil
+          opts = parse_options(args)
+          execute(opts)
+        end
+
+        private def parse_options(args : Array(String)) : EnrollOptions
           token : String? = nil
           server : String? = nil
+          tenant_id : String? = nil
           ca_cert_path : String? = nil
           ca_key_path : String? = nil
           overwrite = false
@@ -57,10 +82,6 @@ module Dirless
             end
           end
 
-          # ── validation — assign non-nilable locals after checks ──────────
-          raise EnrollError.new("Error: --token is required.") unless token
-          raise EnrollError.new("Error: --server is required.") unless server
-
           if ca_cert_path.nil? != ca_key_path.nil?
             raise EnrollError.new("Error: --ca-cert and --ca-key must be provided together.")
           end
@@ -69,13 +90,24 @@ module Dirless
             raise EnrollError.new("Error: --regenerate-hmac requires --overwrite-existing.")
           end
 
-          # Assign non-nilable locals now that validation has passed
-          resolved_token = token
-          resolved_server = server
+          resolved_token = require_opt(token, "--token")
+          resolved_server = require_opt(server, "--server")
 
+          EnrollOptions.new(
+            token: resolved_token,
+            server: resolved_server,
+            tenant_id: tenant_id,
+            ca_cert_path: ca_cert_path,
+            ca_key_path: ca_key_path,
+            overwrite: overwrite,
+            regenerate_hmac: regenerate_hmac,
+          )
+        end
+
+        private def execute(opts : EnrollOptions) : Nil
           # ── existing file check ──────────────────────────────────────────
           existing = Config.enrollment_files.select { |path| File.exists?(path) }
-          if !existing.empty? && !overwrite
+          if !existing.empty? && !opts.overwrite?
             msg = String.build do |io|
               io << "Error: enrollment files already exist:\n"
               existing.each { |path| io << "  #{path}\n" }
@@ -85,7 +117,7 @@ module Dirless
           end
 
           # ── HMAC secret ──────────────────────────────────────────────────
-          hmac_secret = if regenerate_hmac
+          hmac_secret = if opts.regenerate_hmac?
                           warn_hmac_regeneration
                           HMACKey.regenerate(Config.hmac_key_path)
                         else
@@ -93,33 +125,33 @@ module Dirless
                         end
 
           # ── tenant ID ────────────────────────────────────────────────────
-          resolved_tenant_id = if tenant_id
-                                 puts "Using provided tenant ID: #{tenant_id}"
-                                 tenant_id
-                               else
-                                 puts "Fetching AWS account ID from IMDS..."
-                                 derived = Providers::AWS.tenant_id(hmac_secret)
-                                 puts "Derived tenant ID: #{derived}"
-                                 derived
-                               end
+          tenant_id = if tid = opts.tenant_id
+                        puts "Using provided tenant ID: #{tid}"
+                        tid
+                      else
+                        puts "Fetching AWS account ID from IMDS..."
+                        derived = Providers::AWS.tenant_id(hmac_secret)
+                        puts "Derived tenant ID: #{derived}"
+                        derived
+                      end
 
           # ── age keypair ──────────────────────────────────────────────────
           puts "Generating age keypair..."
           age_keypair = Age.keygen
 
           # ── X.509 cert bundle ────────────────────────────────────────────
-          bundle = if ca_cert_path && ca_key_path
+          bundle = if (cert_path = opts.ca_cert_path) && (key_path = opts.ca_key_path)
                      puts "Generating CA-signed certificate bundle..."
                      X509.generate(
-                       common_name: resolved_tenant_id,
+                       common_name: tenant_id,
                        days: CERT_VALIDITY_DAYS,
-                       ca_cert: File.read(ca_cert_path),
-                       ca_key: File.read(ca_key_path),
+                       ca_cert: File.read(cert_path),
+                       ca_key: File.read(key_path),
                      )
                    else
                      puts "Generating self-signed certificate bundle..."
                      X509.generate(
-                       common_name: resolved_tenant_id,
+                       common_name: tenant_id,
                        days: CERT_VALIDITY_DAYS,
                      )
                    end
@@ -136,18 +168,22 @@ module Dirless
           write_file(Config.age_key_path, age_keypair.secret_key.value)
 
           # ── POST /v1/enrollment/enroll ───────────────────────────────────
-          puts "Enrolling with #{resolved_server}..."
+          puts "Enrolling with #{opts.server}..."
           enroll(
-            server: resolved_server,
-            token: resolved_token,
-            tenant_id: resolved_tenant_id,
+            server: opts.server,
+            token: opts.token,
+            tenant_id: tenant_id,
             age_public_key: age_keypair.public_key.value,
             ca_cert: bundle.ca_cert,
           )
 
           puts "\n✓ Enrollment complete."
-          puts "  Tenant ID : #{resolved_tenant_id}"
+          puts "  Tenant ID : #{tenant_id}"
           puts "  Files     : #{Config.dir}/"
+        end
+
+        private def require_opt(value : String?, flag : String) : String
+          value || raise EnrollError.new("Error: #{flag} is required.")
         end
 
         private def write_file(path : String, content : String) : Nil
