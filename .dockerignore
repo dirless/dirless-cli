@@ -1,0 +1,4 @@
+# Keep lib/ — shards are committed for Docker builds
+dist/
+dirless-cli
+*.so
