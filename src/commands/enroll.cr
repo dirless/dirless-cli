@@ -25,12 +25,12 @@ module Dirless
 
         def run(args : Array(String)) : Nil
           # ── option defaults ──────────────────────────────────────────────
-          tenant_id       : String? = nil
-          token           : String? = nil
-          server          : String? = nil
-          ca_cert_path    : String? = nil
-          ca_key_path     : String? = nil
-          overwrite       = false
+          tenant_id : String? = nil
+          token : String? = nil
+          server : String? = nil
+          ca_cert_path : String? = nil
+          ca_key_path : String? = nil
+          overwrite = false
           regenerate_hmac = false
 
           OptionParser.parse(args) do |parser|
@@ -57,7 +57,7 @@ module Dirless
             end
           end
 
-          # ── validation ───────────────────────────────────────────────────
+          # ── validation — assign non-nilable locals after checks ──────────
           raise EnrollError.new("Error: --token is required.") unless token
           raise EnrollError.new("Error: --server is required.") unless server
 
@@ -69,77 +69,80 @@ module Dirless
             raise EnrollError.new("Error: --regenerate-hmac requires --overwrite-existing.")
           end
 
+          # Assign non-nilable locals now that validation has passed
+          resolved_token = token
+          resolved_server = server
+
           # ── existing file check ──────────────────────────────────────────
-          existing = Config.enrollment_files.select { |f| File.exists?(f) }
-          if existing.any? && !overwrite
-            msg = String.build do |s|
-              s << "Error: enrollment files already exist:\n"
-              existing.each { |f| s << "  #{f}\n" }
-              s << "\nPass --overwrite-existing to overwrite them."
+          existing = Config.enrollment_files.select { |path| File.exists?(path) }
+          if !existing.empty? && !overwrite
+            msg = String.build do |io|
+              io << "Error: enrollment files already exist:\n"
+              existing.each { |path| io << "  #{path}\n" }
+              io << "\nPass --overwrite-existing to overwrite them."
             end
             raise EnrollError.new(msg)
           end
 
           # ── HMAC secret ──────────────────────────────────────────────────
           hmac_secret = if regenerate_hmac
-            warn_hmac_regeneration
-            HMACKey.regenerate(Config.hmac_key_path)
-          else
-            HMACKey.load_or_generate(Config.hmac_key_path)
-          end
+                          warn_hmac_regeneration
+                          HMACKey.regenerate(Config.hmac_key_path)
+                        else
+                          HMACKey.load_or_generate(Config.hmac_key_path)
+                        end
 
           # ── tenant ID ────────────────────────────────────────────────────
           resolved_tenant_id = if tenant_id
-            puts "Using provided tenant ID: #{tenant_id}"
-            tenant_id
-          else
-            puts "Fetching AWS account ID from IMDS..."
-            id = Providers::AWS.tenant_id(hmac_secret)
-            puts "Derived tenant ID: #{id}"
-            id
-          end
+                                 puts "Using provided tenant ID: #{tenant_id}"
+                                 tenant_id
+                               else
+                                 puts "Fetching AWS account ID from IMDS..."
+                                 derived = Providers::AWS.tenant_id(hmac_secret)
+                                 puts "Derived tenant ID: #{derived}"
+                                 derived
+                               end
 
           # ── age keypair ──────────────────────────────────────────────────
           puts "Generating age keypair..."
           age_keypair = Age.keygen
 
           # ── X.509 cert bundle ────────────────────────────────────────────
-          resolved_tenant_id = resolved_tenant_id.not_nil!
           bundle = if ca_cert_path && ca_key_path
-            puts "Generating CA-signed certificate bundle..."
-            X509.generate(
-              common_name: resolved_tenant_id,
-              days:        CERT_VALIDITY_DAYS,
-              ca_cert:     File.read(ca_cert_path.not_nil!),
-              ca_key:      File.read(ca_key_path.not_nil!),
-            )
-          else
-            puts "Generating self-signed certificate bundle..."
-            X509.generate(
-              common_name: resolved_tenant_id,
-              days:        CERT_VALIDITY_DAYS,
-            )
-          end
+                     puts "Generating CA-signed certificate bundle..."
+                     X509.generate(
+                       common_name: resolved_tenant_id,
+                       days: CERT_VALIDITY_DAYS,
+                       ca_cert: File.read(ca_cert_path),
+                       ca_key: File.read(ca_key_path),
+                     )
+                   else
+                     puts "Generating self-signed certificate bundle..."
+                     X509.generate(
+                       common_name: resolved_tenant_id,
+                       days: CERT_VALIDITY_DAYS,
+                     )
+                   end
 
           # ── write files ──────────────────────────────────────────────────
           puts "Writing enrollment files to #{Config.dir}..."
           FileUtils.mkdir_p(Config.dir)
           File.chmod(Config.dir, Config::DIR_PERMS)
 
-          write_file(Config.ca_cert_path,     bundle.ca_cert)
-          write_file(Config.ca_key_path,      bundle.ca_key)
+          write_file(Config.ca_cert_path, bundle.ca_cert)
+          write_file(Config.ca_key_path, bundle.ca_key)
           write_file(Config.client_cert_path, bundle.client_cert)
-          write_file(Config.client_key_path,  bundle.client_key)
-          write_file(Config.age_key_path,     age_keypair.secret_key.value)
+          write_file(Config.client_key_path, bundle.client_key)
+          write_file(Config.age_key_path, age_keypair.secret_key.value)
 
           # ── POST /v1/enrollment/enroll ───────────────────────────────────
-          puts "Enrolling with #{server}..."
+          puts "Enrolling with #{resolved_server}..."
           enroll(
-            server:         server.not_nil!,
-            token:          token.not_nil!,
-            tenant_id:      resolved_tenant_id,
+            server: resolved_server,
+            token: resolved_token,
+            tenant_id: resolved_tenant_id,
             age_public_key: age_keypair.public_key.value,
-            ca_cert:        bundle.ca_cert,
+            ca_cert: bundle.ca_cert,
           )
 
           puts "\n✓ Enrollment complete."

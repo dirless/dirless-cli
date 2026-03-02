@@ -45,7 +45,7 @@ module Dirless
         @@dir = path
         yield
       ensure
-        @@dir = previous.not_nil!
+        @@dir = previous || DEFAULT_DIR
       end
     end
   end

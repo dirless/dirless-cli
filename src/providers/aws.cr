@@ -6,11 +6,11 @@ module Dirless
   module CLI
     module Providers
       module AWS
-        IMDS_BASE    = "http://169.254.169.254"
-        IMDS_TOKEN   = "#{IMDS_BASE}/latest/api/token"
+        IMDS_BASE     = "http://169.254.169.254"
+        IMDS_TOKEN    = "#{IMDS_BASE}/latest/api/token"
         IMDS_IDENTITY = "#{IMDS_BASE}/latest/dynamic/instance-identity/document"
-        TOKEN_TTL    = "21600" # seconds (6 hours, standard value)
-        PREFIX       = "aws___"
+        TOKEN_TTL     = "21600" # seconds (6 hours, standard value)
+        PREFIX        = "aws___"
 
         # Fetches the AWS account ID from IMDSv2.
         # Raises if IMDS is unreachable or the response is malformed.
