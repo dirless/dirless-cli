@@ -27,6 +27,36 @@ make docker-build
 
 ## Usage
 
+### Bearer token
+
+The `--token` flag expects an enrollment token issued by the Dirless customer
+portal. Customers receive this after account creation and can manage it at
+[app.dirless.io](https://app.dirless.io) *(portal coming soon)*.
+
+#### Generating a token for internal testing
+
+Until the portal exists, generate a token manually and register it directly in
+the backend database for the tenant:
+
+```sh
+# Generate a random plaintext token
+TOKEN=$(openssl rand -hex 32)
+echo "Token: $TOKEN"
+
+# Hash it for storage — the backend stores only the hash, never the plaintext
+TOKEN_HASH=$(echo -n "$TOKEN" | sha256sum | awk '{print $1}')
+echo "Hash:  $TOKEN_HASH"
+
+# Insert into the tenant's SQLite database
+sqlite3 /var/lib/dirless/db/<tenant_id>.db \
+  "INSERT OR REPLACE INTO settings (key, value) VALUES ('enrollment_token_hash', '$TOKEN_HASH');"
+```
+
+Use `$TOKEN` as the `--token` value when running `dirless-cli enroll`.
+
+> ⚠️ This is a manual development workflow only. The portal will handle token
+> issuance automatically.
+
 ### Enroll
 
 Enrolls this node with the Dirless backend. Generates an age keypair, an X.509
