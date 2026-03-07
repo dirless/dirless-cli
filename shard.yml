@@ -12,12 +12,10 @@ crystal: ">= 1.9.0"
 
 dependencies:
   age-crystal:
-    git: git@github.com:dirless/age-crystal.git
-    branch: main
+    path: /src/age-crystal
 
   x509-crystal:
-    github: dirless/x509-crystal
-    branch: main
+    path: /src/x509-crystal
 
 development_dependencies:
   ameba:
