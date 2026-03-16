@@ -219,6 +219,8 @@ module Dirless
           when 200
             parsed = JSON.parse(response.body)
             puts "  Backend response: #{parsed["status"]?}"
+          when 401
+            raise EnrollError.new("Error: invalid token — check --token matches the backend hmac_secret")
           when 403
             parsed = JSON.parse(response.body)
             raise EnrollError.new("Error: enrollment rejected — #{parsed["error"]?}")
