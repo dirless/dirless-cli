@@ -28,8 +28,7 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}/dist":/output \
             dirless-cli-builder \
-            cp /build/dirless-cli /output/dirless-cli
-          chmod +x dist/dirless-cli
+            sh -c "cp /build/dirless-cli /output/dirless-cli && chmod +x /output/dirless-cli"
 
       - name: Smoke test
         run: dist/dirless-cli --help
