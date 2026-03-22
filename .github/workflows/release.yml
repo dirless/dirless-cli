@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build dirless-cli
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build binary (AL2023/glibc)
+        run: |
+          mkdir -p dist
+          docker build \
+            --build-arg GO_VERSION=1.21.13 \
+            --build-arg CRYSTAL_VERSION=1.11.2 \
+            -t dirless-cli-builder \
+            -f Dockerfile.build \
+            .
+          docker run --rm \
+            -v "${{ github.workspace }}/dist":/output \
+            dirless-cli-builder \
+            cp /build/dirless-cli /output/dirless-cli
+          chmod +x dist/dirless-cli
+
+      - name: Smoke test
+        run: dist/dirless-cli --help
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/dirless-cli
+          generate_release_notes: true

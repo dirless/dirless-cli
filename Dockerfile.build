@@ -42,7 +42,7 @@ RUN ldconfig
 WORKDIR /build
 
 COPY shard.yml shard.lock ./
-COPY lib/ ./lib/
+RUN shards install --production
 
 COPY src/ ./src/
 RUN crystal build src/dirless_cli.cr -o dirless-cli --release --no-debug
