@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+      - uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+      - name: Build libage.so
+        run: cd lib/age-crystal && make build
+      - name: Build libx509.so
+        run: cd lib/x509-crystal && make build
+      - run: shards install
+      - run: crystal tool format --check
+      - run: bin/ameba
+
+  spec:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crystal: [latest, nightly]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+      - uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal }}
+      - run: shards install
+      - name: Build libage.so
+        run: cd lib/age-crystal && make build
+      - name: Build libx509.so
+        run: cd lib/x509-crystal && make build
+      - run: crystal spec
