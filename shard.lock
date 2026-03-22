@@ -1,7 +1,7 @@
 version: 2.0
 shards:
   age-crystal:
-    git: git@github.com:dirless/age-crystal.git
+    git: https://github.com/dirless/age-crystal.git
     version: 0.1.0+git.commit.b3bf8e375e48aa91af5f42191e3ec597a680c6bc
 
   ameba:
