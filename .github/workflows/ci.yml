@@ -17,11 +17,11 @@ jobs:
       - uses: crystal-lang/install-crystal@v1
         with:
           crystal: latest
+      - run: shards install
       - name: Build libage.so
-        run: cd lib/age-crystal && make build
+        run: cd lib/age-crystal && make build && mkdir -p dist && cp libage.so dist/
       - name: Build libx509.so
         run: cd lib/x509-crystal && make build
-      - run: shards install
       - run: crystal tool format --check
       - run: bin/ameba
 
@@ -40,7 +40,7 @@ jobs:
           crystal: ${{ matrix.crystal }}
       - run: shards install
       - name: Build libage.so
-        run: cd lib/age-crystal && make build
+        run: cd lib/age-crystal && make build && mkdir -p dist && cp libage.so dist/
       - name: Build libx509.so
         run: cd lib/x509-crystal && make build
       - run: crystal spec
