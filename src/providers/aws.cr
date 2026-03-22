@@ -53,6 +53,9 @@ module Dirless
           parsed = JSON.parse(response.body)
           account_id = parsed["accountId"]?.try(&.as_s)
           raise "accountId not found in IMDS identity document." unless account_id
+          unless account_id.match(/\A\d{12}\z/)
+            raise "accountId from IMDS has unexpected format (expected 12 digits, got: #{account_id.inspect})"
+          end
           account_id
         end
       end

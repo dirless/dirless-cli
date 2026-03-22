@@ -78,6 +78,31 @@ describe Dirless::CLI::Providers::AWS do
         Dirless::CLI::Providers::AWS.account_id
       end
     end
+
+    it "raises when accountId is not exactly 12 digits (L4)" do
+      WebMock.stub(:put, "169.254.169.254/latest/api/token")
+        .to_return(status: 200, body: IMDS_TOKEN_RESPONSE)
+
+      # 11 digits — invalid AWS account ID format
+      WebMock.stub(:get, "169.254.169.254/latest/dynamic/instance-identity/document")
+        .to_return(status: 200, body: {"accountId" => "12345678901"}.to_json)
+
+      expect_raises(Exception, /unexpected format/) do
+        Dirless::CLI::Providers::AWS.account_id
+      end
+    end
+
+    it "raises when accountId contains non-digit characters (L4)" do
+      WebMock.stub(:put, "169.254.169.254/latest/api/token")
+        .to_return(status: 200, body: IMDS_TOKEN_RESPONSE)
+
+      WebMock.stub(:get, "169.254.169.254/latest/dynamic/instance-identity/document")
+        .to_return(status: 200, body: {"accountId" => "1234567890ab"}.to_json)
+
+      expect_raises(Exception, /unexpected format/) do
+        Dirless::CLI::Providers::AWS.account_id
+      end
+    end
   end
 
   describe ".tenant_id" do
