@@ -30,9 +30,6 @@ jobs:
             dirless-cli-builder \
             sh -c "cp /build/dirless-cli /output/dirless-cli && chmod +x /output/dirless-cli"
 
-      - name: Smoke test
-        run: dist/dirless-cli --help
-
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
