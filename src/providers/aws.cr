@@ -26,9 +26,17 @@ module Dirless
           "#{PREFIX}#{hashed}"
         end
 
+        private def self.new_imds_client : HTTP::Client
+          client = HTTP::Client.new("169.254.169.254")
+          client.connect_timeout = 2.seconds
+          client.read_timeout = 5.seconds
+          client
+        end
+
         private def self.fetch_imds_token : String
-          response = HTTP::Client.put(
-            IMDS_TOKEN,
+          client = new_imds_client
+          response = client.put(
+            "/latest/api/token",
             headers: HTTP::Headers{"X-aws-ec2-metadata-token-ttl-seconds" => TOKEN_TTL}
           )
           unless response.status_code == 200
@@ -43,8 +51,9 @@ module Dirless
         end
 
         private def self.fetch_account_id(token : String) : String
-          response = HTTP::Client.get(
-            IMDS_IDENTITY,
+          client = new_imds_client
+          response = client.get(
+            "/latest/dynamic/instance-identity/document",
             headers: HTTP::Headers{"X-aws-ec2-metadata-token" => token}
           )
           unless response.status_code == 200

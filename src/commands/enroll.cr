@@ -1,5 +1,6 @@
 require "option_parser"
 require "http/client"
+require "uri"
 require "json"
 require "file_utils"
 require "age-crystal"
@@ -199,15 +200,18 @@ module Dirless
           age_public_key : String,
           ca_cert : String,
         ) : Nil
-          uri = "#{server.rstrip("/")}/v1/enrollment/enroll"
+          parsed_uri = URI.parse("#{server.rstrip("/")}/v1/enrollment/enroll")
           body = {
             tenant_id:      tenant_id,
             age_public_key: age_public_key,
             ca_cert:        ca_cert,
           }.to_json
 
-          response = HTTP::Client.post(
-            uri,
+          client = HTTP::Client.new(parsed_uri)
+          client.connect_timeout = 10.seconds
+          client.read_timeout = 30.seconds
+          response = client.post(
+            parsed_uri.request_target,
             headers: HTTP::Headers{
               "Content-Type"  => "application/json",
               "Authorization" => "Bearer #{token}",
