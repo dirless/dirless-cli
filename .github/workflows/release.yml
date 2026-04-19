@@ -7,13 +7,19 @@ on:
 
 jobs:
   build:
-    name: Build dirless-cli (static)
+    name: Build, release, and publish RPM
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      # ── Static binary ───────────────────────────────────────────────────────
 
       - name: Build static binary (Alpine/musl)
         run: |
@@ -24,8 +30,62 @@ jobs:
             dirless-cli-builder \
             sh -c "cp /build/dirless-cli /output/dirless-cli && chmod +x /output/dirless-cli"
 
-      - name: Create release
+      # ── RPM (x86_64) ────────────────────────────────────────────────────────
+
+      - name: Build RPM (x86_64)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/dist":/dist:ro \
+            -v "${{ github.workspace }}/packaging":/packaging:ro \
+            -v "${{ github.workspace }}/dist/rpms":/out \
+            amazonlinux:2023 \
+            bash -c "
+              set -euo pipefail
+              dnf install -y rpm-build --quiet
+              mkdir -p ~/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
+              cp /dist/dirless-cli ~/rpmbuild/SOURCES/
+              rpmbuild -bb \
+                --define 'pkg_version ${{ steps.ver.outputs.version }}' \
+                --target x86_64 \
+                /packaging/dirless-cli.spec
+              cp ~/rpmbuild/RPMS/x86_64/*.rpm /out/
+            "
+          ls -lh dist/rpms/
+
+      # ── GitHub Release ──────────────────────────────────────────────────────
+
+      - name: Create GitHub release with binary + RPM
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/dirless-cli
           generate_release_notes: true
+          files: |
+            dist/dirless-cli
+            dist/rpms/*.rpm
+
+      # ── RPM repository (dirless.com/rpm/) ───────────────────────────────────
+
+      - name: Install createrepo_c
+        run: sudo apt-get install -y createrepo-c
+
+      - name: Checkout dirless-website
+        uses: actions/checkout@v4
+        with:
+          repository: dirless/dirless-website
+          token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
+          path: dirless-website
+
+      - name: Add RPM to repository tree
+        run: |
+          mkdir -p dirless-website/rpm/x86_64/Packages
+          cp dist/rpms/*.rpm dirless-website/rpm/x86_64/Packages/
+          createrepo_c --update dirless-website/rpm/x86_64/
+
+      - name: Commit and push RPM repository update
+        run: |
+          cd dirless-website
+          git config user.email "hello@dirless.io"
+          git config user.name "Dirless Bot"
+          git add rpm/
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "Add dirless-cli ${{ github.ref_name }} to RPM repository"
+          git push
