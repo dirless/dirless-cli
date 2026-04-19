@@ -14,5 +14,5 @@ shards:
 
   x509-crystal:
     git: https://github.com/dirless/x509-crystal.git
-    version: 0.2.0
+    version: 0.2.1
 
