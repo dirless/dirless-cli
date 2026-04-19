@@ -4,6 +4,7 @@ Release:  1
 Summary:  Enroll Linux nodes with Dirless — AWS IAM Identity Center to native Linux identities
 License:  Proprietary
 URL:      https://dirless.com
+Source0:  dirless-cli
 
 # Fully static musl binary — no shared library dependencies.
 AutoReqProv: no
