@@ -13,9 +13,11 @@ crystal: ">= 1.9.0"
 dependencies:
   age-crystal:
     github: dirless/age-crystal
+    version: 0.2.0
 
   x509-crystal:
     github: dirless/x509-crystal
+    version: 0.2.0
 
 development_dependencies:
   ameba:

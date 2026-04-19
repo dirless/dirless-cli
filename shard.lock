@@ -2,7 +2,7 @@ version: 2.0
 shards:
   age-crystal:
     git: https://github.com/dirless/age-crystal.git
-    version: 0.1.0+git.commit.b3bf8e375e48aa91af5f42191e3ec597a680c6bc
+    version: 0.2.0
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
@@ -14,5 +14,5 @@ shards:
 
   x509-crystal:
     git: https://github.com/dirless/x509-crystal.git
-    version: 0.1.0+git.commit.81b748f624e7f5eb275a5840f3f2353284fa4558
+    version: 0.2.0
 

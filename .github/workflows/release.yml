@@ -7,24 +7,18 @@ on:
 
 jobs:
   build:
-    name: Build dirless-cli
+    name: Build dirless-cli (static)
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Build binary (AL2023/glibc)
+      - name: Build static binary (Alpine/musl)
         run: |
           mkdir -p dist
-          docker build \
-            --build-arg GO_VERSION=1.21.13 \
-            --build-arg CRYSTAL_VERSION=1.11.2 \
-            -t dirless-cli-builder \
-            -f Dockerfile.build \
-            .
+          docker build -t dirless-cli-builder -f Dockerfile.build .
           docker run --rm \
             -v "${{ github.workspace }}/dist":/output \
             dirless-cli-builder \
