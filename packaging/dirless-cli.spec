@@ -2,7 +2,7 @@ Name:     dirless-cli
 Version:  %{pkg_version}
 Release:  1
 Summary:  Enroll Linux nodes with Dirless — AWS IAM Identity Center to native Linux identities
-License:  Proprietary
+License:  Apache-2.0
 URL:      https://dirless.com
 Source0:  dirless-cli
 

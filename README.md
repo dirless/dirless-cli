@@ -30,32 +30,8 @@ make docker-build
 ### Bearer token
 
 The `--token` flag expects an enrollment token issued by the Dirless customer
-portal. Customers receive this after account creation and can manage it at
-[app.dirless.io](https://app.dirless.io) *(portal coming soon)*.
-
-#### Generating a token for internal testing
-
-Until the portal exists, generate a token manually and register it directly in
-the backend database for the tenant:
-
-```sh
-# Generate a random plaintext token
-TOKEN=$(openssl rand -hex 32)
-echo "Token: $TOKEN"
-
-# Hash it for storage — the backend stores only the hash, never the plaintext
-TOKEN_HASH=$(echo -n "$TOKEN" | sha256sum | awk '{print $1}')
-echo "Hash:  $TOKEN_HASH"
-
-# Insert into the tenant's SQLite database
-sqlite3 /var/lib/dirless/db/<tenant_id>.db \
-  "INSERT OR REPLACE INTO settings (key, value) VALUES ('enrollment_token_hash', '$TOKEN_HASH');"
-```
-
-Use `$TOKEN` as the `--token` value when running `dirless-cli enroll`.
-
-> ⚠️ This is a manual development workflow only. The portal will handle token
-> issuance automatically.
+portal. Log in at [portal.dirless.com](https://portal.dirless.com) to find
+your token.
 
 ### Enroll
 
@@ -68,7 +44,7 @@ POSTs to the backend enrollment endpoint.
 ```sh
 dirless-cli enroll \
   --token <your-bearer-token> \
-  --server https://enroll.dirless.io
+  --server https://<your-subdomain>.dirless.com
 ```
 
 **CA-signed mode (production):**
@@ -76,7 +52,7 @@ dirless-cli enroll \
 ```sh
 dirless-cli enroll \
   --token <your-bearer-token> \
-  --server https://enroll.dirless.io \
+  --server https://<your-subdomain>.dirless.com \
   --ca-cert /path/to/ca.crt \
   --ca-key  /path/to/ca.key
 ```
@@ -87,7 +63,7 @@ dirless-cli enroll \
 dirless-cli enroll \
   --tenant-id my-tenant-123 \
   --token <your-bearer-token> \
-  --server https://enroll.dirless.io
+  --server https://<your-subdomain>.dirless.com
 ```
 
 **Re-enrollment (rotate certs, keep identity):**
@@ -95,7 +71,7 @@ dirless-cli enroll \
 ```sh
 dirless-cli enroll \
   --token <your-bearer-token> \
-  --server https://enroll.dirless.io \
+  --server https://<your-subdomain>.dirless.com \
   --overwrite-existing
 ```
 
@@ -104,7 +80,7 @@ dirless-cli enroll \
 ```sh
 dirless-cli enroll \
   --token <your-bearer-token> \
-  --server https://enroll.dirless.io \
+  --server https://<your-subdomain>.dirless.com \
   --overwrite-existing \
   --regenerate-hmac
 ```

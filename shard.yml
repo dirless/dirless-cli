@@ -4,9 +4,9 @@ version: 0.1.0
 description: CLI for enrolling and managing Dirless identity nodes
 
 authors:
-  - Dirless <hello@dirless.io>
+  - Dirless <hello@dirless.com>
 
-license: Private
+license: Apache-2.0
 
 crystal: ">= 1.20.0"
 
