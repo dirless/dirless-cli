@@ -6,6 +6,7 @@ dist/
 lib/
 .shards/
 bin/
+*.dwarf
 
 # Editor
 .DS_Store
