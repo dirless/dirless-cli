@@ -7,10 +7,20 @@ on:
 
 jobs:
   build:
-    name: Build, release, and publish RPM
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     permissions:
-      contents: write
+      contents: read
+
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+            rpm_target: x86_64
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            rpm_target: aarch64
 
     steps:
       - uses: actions/checkout@v4
@@ -29,11 +39,13 @@ jobs:
             -v "${{ github.workspace }}/dist":/output \
             dirless-cli-builder \
             sh -c "cp /build/dirless-cli /output/dirless-cli && chmod +x /output/dirless-cli"
+          mv dist/dirless-cli dist/dirless-cli-${{ matrix.arch }}
 
-      # ── RPM (x86_64) ────────────────────────────────────────────────────────
+      # ── RPM ────────────────────────────────────────────────────────────────
 
-      - name: Build RPM (x86_64)
+      - name: Build RPM (${{ matrix.arch }})
         run: |
+          mkdir -p dist/rpms
           docker run --rm \
             -v "${{ github.workspace }}/dist":/dist:ro \
             -v "${{ github.workspace }}/packaging":/packaging:ro \
@@ -43,24 +55,54 @@ jobs:
               set -euo pipefail
               dnf install -y rpm-build --quiet
               mkdir -p ~/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
-              cp /dist/dirless-cli ~/rpmbuild/SOURCES/
+              cp /dist/dirless-cli-${{ matrix.arch }} ~/rpmbuild/SOURCES/dirless-cli
               rpmbuild -bb \
                 --define 'pkg_version ${{ steps.ver.outputs.version }}' \
-                --target x86_64 \
+                --target ${{ matrix.rpm_target }} \
                 /packaging/dirless-cli.spec
-              cp ~/rpmbuild/RPMS/x86_64/*.rpm /out/
+              cp ~/rpmbuild/RPMS/${{ matrix.rpm_target }}/*.rpm /out/
             "
           ls -lh dist/rpms/
 
+      # ── Upload artifacts ────────────────────────────────────────────────────
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.arch }}
+          path: |
+            dist/dirless-cli-${{ matrix.arch }}
+            dist/rpms/*.rpm
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List release assets
+        run: find dist -type f | sort
+
       # ── GitHub Release ──────────────────────────────────────────────────────
 
-      - name: Create GitHub release with binary + RPM
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            dist/dirless-cli
-            dist/rpms/*.rpm
+            dist/dirless-cli-x86_64
+            dist/dirless-cli-aarch64
+            dist/**/*.rpm
 
       # ── RPM repository (dirless.com/rpm/) ───────────────────────────────────
 
@@ -74,16 +116,19 @@ jobs:
           token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
           path: dirless-website
 
-      - name: Add RPM to repository tree
+      - name: Add RPMs to repository tree
         run: |
           mkdir -p dirless-website/rpm/x86_64/Packages
-          cp dist/rpms/*.rpm dirless-website/rpm/x86_64/Packages/
+          mkdir -p dirless-website/rpm/aarch64/Packages
+          find dist -name "*x86_64*.rpm" -exec cp {} dirless-website/rpm/x86_64/Packages/ \;
+          find dist -name "*aarch64*.rpm" -exec cp {} dirless-website/rpm/aarch64/Packages/ \;
           createrepo_c --update dirless-website/rpm/x86_64/
+          createrepo_c --update dirless-website/rpm/aarch64/
 
       - name: Commit and push RPM repository update
         run: |
           cd dirless-website
-          git config user.email "hello@dirless.io"
+          git config user.email "hello@dirless.com"
           git config user.name "Dirless Bot"
           git add rpm/
           git diff --staged --quiet && echo "No changes" && exit 0
