@@ -1,126 +1,91 @@
 # dirless-cli
 
-Command-line tool for enrolling and managing Dirless identity nodes.
-
-## Requirements
-
-- Crystal >= 1.9.0
-- `libage.so` — from [age-crystal](https://github.com/dirless/age-crystal)
-- `libx509.so` — from [x509-crystal](https://github.com/dirless/x509-crystal)
-
-Both `.so` files must be on the library path (e.g. `/usr/lib/`) before building or running.
+Command-line tool for enrolling Linux nodes with Dirless — maps AWS IAM Identity Center users and groups to native Linux identities without LDAP or a directory service.
 
 ## Installation
 
+### RPM (RHEL / Amazon Linux 2023)
+
 ```sh
-shards install
-make build
-# → ./dirless-cli
+curl -fsSL https://dirless.com/rpm/dirless.repo \
+  -o /etc/yum.repos.d/dirless.repo
+dnf install -y dirless-cli
 ```
 
-For an AL2023-compatible binary (RPM targets):
+### Binary (Linux x86_64)
 
 ```sh
-make docker-build
-# → dist/dirless-cli
+curl -fsSL https://github.com/dirless/dirless-cli/releases/latest/download/dirless-cli-x86_64 \
+  -o /usr/local/bin/dirless-cli
+chmod +x /usr/local/bin/dirless-cli
+```
+
+### Binary (Linux aarch64)
+
+```sh
+curl -fsSL https://github.com/dirless/dirless-cli/releases/latest/download/dirless-cli-aarch64 \
+  -o /usr/local/bin/dirless-cli
+chmod +x /usr/local/bin/dirless-cli
 ```
 
 ## Usage
 
-### Bearer token
+Your enrollment token and server address are available in the [Dirless portal](https://portal.dirless.com).
 
-The `--token` flag expects an enrollment token issued by the Dirless customer
-portal. Log in at [portal.dirless.com](https://portal.dirless.com) to find
-your token.
-
-### Enroll
-
-Enrolls this node with the Dirless backend. Generates an age keypair, an X.509
-certificate bundle, and an HMAC secret, writes them to `/etc/dirless/`, then
-POSTs to the backend enrollment endpoint.
-
-**Self-signed mode (dev/testing):**
+### Enroll a node
 
 ```sh
 dirless-cli enroll \
-  --token <your-bearer-token> \
+  --token <your-enrollment-token> \
   --server https://<your-subdomain>.dirless.com
 ```
 
-**CA-signed mode (production):**
+### Re-enroll (rotate certificates, keep identity)
 
 ```sh
 dirless-cli enroll \
-  --token <your-bearer-token> \
-  --server https://<your-subdomain>.dirless.com \
-  --ca-cert /path/to/ca.crt \
-  --ca-key  /path/to/ca.key
-```
-
-**Explicit tenant ID (non-AWS / local dev):**
-
-```sh
-dirless-cli enroll \
-  --tenant-id my-tenant-123 \
-  --token <your-bearer-token> \
-  --server https://<your-subdomain>.dirless.com
-```
-
-**Re-enrollment (rotate certs, keep identity):**
-
-```sh
-dirless-cli enroll \
-  --token <your-bearer-token> \
+  --token <your-enrollment-token> \
   --server https://<your-subdomain>.dirless.com \
   --overwrite-existing
 ```
 
-**Re-enrollment with new identity (destructive):**
+### Re-enroll with a new identity (destructive)
 
 ```sh
 dirless-cli enroll \
-  --token <your-bearer-token> \
+  --token <your-enrollment-token> \
   --server https://<your-subdomain>.dirless.com \
   --overwrite-existing \
   --regenerate-hmac
 ```
 
-> ⚠️  `--regenerate-hmac` produces a new tenant identity. All existing backend
+> ⚠️ `--regenerate-hmac` assigns this node a new identity. All existing backend
 > data under the previous identity will be orphaned. You will be prompted to
 > confirm before proceeding.
 
-### Files written to `/etc/dirless/`
+### Non-AWS environments
 
-| File         | Contents                                      |
-|--------------|-----------------------------------------------|
-| `ca.crt`     | CA certificate (PEM)                          |
-| `ca.key`     | CA private key (PEM, 0600)                    |
-| `client.crt` | Client certificate for mTLS (PEM)             |
-| `client.key` | Client private key (PEM, 0600)                |
-| `age.key`    | Age secret key for envelope encryption (0600) |
-| `hmac.key`   | HMAC secret used to derive tenant ID (0600)   |
-
-## Tenant ID derivation
-
-On AWS, the tenant ID is derived automatically from the EC2 instance identity
-document via IMDSv2:
-
-```
-tenant_id = "aws___" + HMAC-SHA256(hmac_secret, aws_account_id)
-```
-
-The `hmac.key` file is generated once on first enrollment and reused on
-subsequent runs, keeping the tenant identity stable across cert rotations.
-
-Pass `--tenant-id` to skip IMDS and use an explicit value instead (useful for
-local development or non-AWS environments).
-
-## Development
+On EC2, the tenant ID is derived automatically from the instance identity. For
+non-AWS hosts, pass it explicitly:
 
 ```sh
-# Run specs
-make test
-
-# Lint
-make lint
+dirless-cli enroll \
+  --tenant-id <your-tenant-id> \
+  --token <your-enrollment-token> \
+  --server https://<your-subdomain>.dirless.com
 ```
+
+## Files written to `/etc/dirless/`
+
+| File         | Contents                                        |
+|--------------|-------------------------------------------------|
+| `ca.crt`     | CA certificate (PEM)                            |
+| `ca.key`     | CA private key (PEM, 0600)                      |
+| `client.crt` | Client certificate for mTLS (PEM)               |
+| `client.key` | Client private key (PEM, 0600)                  |
+| `age.key`    | Encryption key (0600)                           |
+| `hmac.key`   | Identity key — do not share or delete (0600)    |
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE).
