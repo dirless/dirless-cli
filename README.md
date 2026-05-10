@@ -6,25 +6,32 @@ Command-line tool for enrolling Linux nodes with Dirless — maps AWS IAM Identi
 
 ### RPM (RHEL / Amazon Linux 2023)
 
+Packages are available for x86_64 and aarch64.
+
+**Step 1 — add the Dirless repository:**
+
 ```sh
 curl -fsSL https://dirless.com/rpm/dirless.repo \
   -o /etc/yum.repos.d/dirless.repo
+```
+
+**Step 2 — install:**
+
+```sh
 dnf install -y dirless-cli
 ```
 
-### Binary (Linux x86_64)
+### Binary
 
 ```sh
+# x86_64
 curl -fsSL https://github.com/dirless/dirless-cli/releases/latest/download/dirless-cli-x86_64 \
   -o /usr/local/bin/dirless-cli
-chmod +x /usr/local/bin/dirless-cli
-```
 
-### Binary (Linux aarch64)
-
-```sh
+# aarch64
 curl -fsSL https://github.com/dirless/dirless-cli/releases/latest/download/dirless-cli-aarch64 \
   -o /usr/local/bin/dirless-cli
+
 chmod +x /usr/local/bin/dirless-cli
 ```
 
@@ -39,29 +46,6 @@ dirless-cli enroll \
   --token <your-enrollment-token> \
   --server https://<your-subdomain>.dirless.com
 ```
-
-### Re-enroll (rotate certificates, keep identity)
-
-```sh
-dirless-cli enroll \
-  --token <your-enrollment-token> \
-  --server https://<your-subdomain>.dirless.com \
-  --overwrite-existing
-```
-
-### Re-enroll with a new identity (destructive)
-
-```sh
-dirless-cli enroll \
-  --token <your-enrollment-token> \
-  --server https://<your-subdomain>.dirless.com \
-  --overwrite-existing \
-  --regenerate-hmac
-```
-
-> ⚠️ `--regenerate-hmac` assigns this node a new identity. All existing backend
-> data under the previous identity will be orphaned. You will be prompted to
-> confirm before proceeding.
 
 ### Non-AWS environments
 
