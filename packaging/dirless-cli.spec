@@ -15,6 +15,8 @@ users to native Linux identities without LDAP or a directory service.
 
 %install
 install -Dm 0755 %{SOURCE0} %{buildroot}%{_bindir}/dirless-cli
+install -d %{buildroot}%{_sysconfdir}/dirless
 
 %files
 %{_bindir}/dirless-cli
+%dir %{_sysconfdir}/dirless
