@@ -117,21 +117,16 @@ module Dirless
             raise EnrollError.new(msg)
           end
 
-          # ── HMAC secret ──────────────────────────────────────────────────
-          hmac_secret = if opts.regenerate_hmac?
-                          warn_hmac_regeneration
-                          HMACKey.regenerate(Config.hmac_key_path)
-                        else
-                          HMACKey.load_or_generate(Config.hmac_key_path)
-                        end
-
           # ── tenant ID ────────────────────────────────────────────────────
           tenant_id = if tid = opts.tenant_id
                         puts "Using provided tenant ID: #{tid}"
                         tid
                       else
                         puts "Fetching AWS account ID from IMDS..."
-                        derived = Providers::AWS.tenant_id(hmac_secret)
+                        # Use the enrollment token as HMAC key — same as dirless-syncer —
+                        # so both nodes derive the same tenant ID and share the same backend DB.
+                        write_file(Config.hmac_key_path, opts.token)
+                        derived = Providers::AWS.tenant_id(opts.token)
                         puts "Derived tenant ID: #{derived}"
                         derived
                       end
