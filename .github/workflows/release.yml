@@ -128,7 +128,7 @@ jobs:
       - name: Commit and push RPM repository update
         run: |
           cd dirless-website
-          git config user.email "hello@dirless.com"
+          git config user.email "info@dirless.com"
           git config user.name "Dirless Bot"
           git add rpm/
           git diff --staged --quiet && echo "No changes" && exit 0
