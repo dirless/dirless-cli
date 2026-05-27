@@ -56,26 +56,6 @@ describe Dirless::CLI::Commands::Enroll do
       end
     end
 
-    it "exits when --ca-cert is given without --ca-key" do
-      expect_raises(Dirless::CLI::Commands::EnrollError) do
-        Dirless::CLI::Commands::Enroll.new.run([
-          "--token", "tok",
-          "--server", ENROLL_SERVER,
-          "--ca-cert", "/tmp/ca.crt",
-        ])
-      end
-    end
-
-    it "exits when --ca-key is given without --ca-cert" do
-      expect_raises(Dirless::CLI::Commands::EnrollError) do
-        Dirless::CLI::Commands::Enroll.new.run([
-          "--token", "tok",
-          "--server", ENROLL_SERVER,
-          "--ca-key", "/tmp/ca.key",
-        ])
-      end
-    end
-
     it "exits when --regenerate-hmac is passed without --overwrite-existing" do
       expect_raises(Dirless::CLI::Commands::EnrollError) do
         Dirless::CLI::Commands::Enroll.new.run([
@@ -101,12 +81,7 @@ describe Dirless::CLI::Commands::Enroll do
             enroll_args(dir, ["--tenant-id", "test-tenant-123"])
           )
 
-          File.exists?(File.join(dir, "ca.crt")).should be_true
-          File.exists?(File.join(dir, "ca.key")).should be_true
-          File.exists?(File.join(dir, "client.crt")).should be_true
-          File.exists?(File.join(dir, "client.key")).should be_true
           File.exists?(File.join(dir, "age.key")).should be_true
-          File.exists?(File.join(dir, "hmac.key")).should be_true
         end
       end
     end
@@ -121,27 +96,9 @@ describe Dirless::CLI::Commands::Enroll do
             enroll_args(dir, ["--tenant-id", "test-tenant-123"])
           )
 
-          key_files = ["ca.key", "client.key", "age.key", "hmac.key"]
-          key_files.each do |filename|
-            path = File.join(dir, filename)
-            perms = File.info(path).permissions
-            (perms.value & 0o777).should eq(0o600), "#{filename} should be 0600"
-          end
-        end
-      end
-    end
-
-    it "writes PEM-formatted ca.crt" do
-      stub_imds
-      stub_backend(200, {"status" => "enrolled"}.to_json)
-
-      with_enroll_tmpdir do |dir|
-        Dirless::CLI::Config.with_dir(dir) do
-          Dirless::CLI::Commands::Enroll.new.run(
-            enroll_args(dir, ["--tenant-id", "test-tenant-123"])
-          )
-          content = File.read(File.join(dir, "ca.crt"))
-          content.should start_with("-----BEGIN CERTIFICATE-----")
+          path = File.join(dir, "age.key")
+          perms = File.info(path).permissions
+          (perms.value & 0o777).should eq(0o600), "age.key should be 0600"
         end
       end
     end
@@ -167,7 +124,7 @@ describe Dirless::CLI::Commands::Enroll do
       with_enroll_tmpdir do |dir|
         Dirless::CLI::Config.with_dir(dir) do
           # Pre-create one of the enrollment files
-          File.write(File.join(dir, "ca.crt"), "existing")
+          File.write(File.join(dir, "age.key"), "existing")
 
           expect_raises(Dirless::CLI::Commands::EnrollError) do
             Dirless::CLI::Commands::Enroll.new.run(
@@ -184,15 +141,15 @@ describe Dirless::CLI::Commands::Enroll do
 
       with_enroll_tmpdir do |dir|
         Dirless::CLI::Config.with_dir(dir) do
-          File.write(File.join(dir, "ca.crt"), "old-content")
+          File.write(File.join(dir, "age.key"), "old-content")
 
           Dirless::CLI::Commands::Enroll.new.run(
             enroll_args(dir, ["--tenant-id", "test-tenant-123", "--overwrite-existing"])
           )
 
-          content = File.read(File.join(dir, "ca.crt"))
+          content = File.read(File.join(dir, "age.key")).strip
           content.should_not eq("old-content")
-          content.should start_with("-----BEGIN CERTIFICATE-----")
+          content.should start_with("AGE-SECRET-KEY-1")
         end
       end
     end
@@ -234,7 +191,7 @@ describe Dirless::CLI::Commands::Enroll do
 
     it "aborts with a clear message on 422 from backend" do
       stub_imds
-      stub_backend(422, {"error" => "ca_cert must be a PEM encoded certificate"}.to_json)
+      stub_backend(422, {"error" => "invalid tenant_id format"}.to_json)
 
       with_enroll_tmpdir do |dir|
         Dirless::CLI::Config.with_dir(dir) do

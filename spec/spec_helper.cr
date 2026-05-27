@@ -1,7 +1,6 @@
 require "spec"
 require "webmock"
 require "age-crystal"
-require "x509-crystal"
 require "../src/config"
 require "../src/hmac_key"
 require "../src/providers/aws"

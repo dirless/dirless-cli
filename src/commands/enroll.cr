@@ -4,7 +4,6 @@ require "uri"
 require "json"
 require "file_utils"
 require "age-crystal"
-require "x509-crystal"
 require "../config"
 require "../hmac_key"
 require "../providers/aws"
@@ -18,8 +17,6 @@ module Dirless
         getter token : String
         getter server : String
         getter tenant_id : String?
-        getter ca_cert_path : String?
-        getter ca_key_path : String?
         getter? overwrite : Bool
         getter? regenerate_hmac : Bool
 
@@ -27,8 +24,6 @@ module Dirless
           @token : String,
           @server : String,
           @tenant_id : String?,
-          @ca_cert_path : String?,
-          @ca_key_path : String?,
           @overwrite : Bool,
           @regenerate_hmac : Bool,
         )
@@ -36,8 +31,6 @@ module Dirless
       end
 
       class Enroll
-        CERT_VALIDITY_DAYS = 3650 # 10 years
-
         def self.run(args : Array(String)) : Nil
           new.run(args)
         rescue ex : EnrollError
@@ -54,8 +47,6 @@ module Dirless
           token : String? = nil
           server : String? = nil
           tenant_id : String? = nil
-          ca_cert_path : String? = nil
-          ca_key_path : String? = nil
           overwrite = false
           regenerate_hmac = false
 
@@ -68,10 +59,6 @@ module Dirless
               "Bearer token issued at account creation (required)") { |v| token = v }
             parser.on("--server URL",
               "Enrollment endpoint URL (required)") { |v| server = v }
-            parser.on("--ca-cert PATH",
-              "Path to existing CA cert PEM (CA-signed mode)") { |v| ca_cert_path = v }
-            parser.on("--ca-key PATH",
-              "Path to existing CA key PEM (CA-signed mode)") { |v| ca_key_path = v }
             parser.on("--overwrite-existing",
               "Overwrite existing enrollment files") { overwrite = true }
             parser.on("--regenerate-hmac",
@@ -81,10 +68,6 @@ module Dirless
               puts parser
               exit 0
             end
-          end
-
-          if ca_cert_path.nil? != ca_key_path.nil?
-            raise EnrollError.new("Error: --ca-cert and --ca-key must be provided together.")
           end
 
           if regenerate_hmac && !overwrite
@@ -98,8 +81,6 @@ module Dirless
             token: resolved_token,
             server: resolved_server,
             tenant_id: tenant_id,
-            ca_cert_path: ca_cert_path,
-            ca_key_path: ca_key_path,
             overwrite: overwrite,
             regenerate_hmac: regenerate_hmac,
           )
@@ -135,32 +116,11 @@ module Dirless
           puts "Generating age keypair..."
           age_keypair = Age.keygen
 
-          # ── X.509 cert bundle ────────────────────────────────────────────
-          bundle = if (cert_path = opts.ca_cert_path) && (key_path = opts.ca_key_path)
-                     puts "Generating CA-signed certificate bundle..."
-                     X509.generate(
-                       common_name: tenant_id,
-                       days: CERT_VALIDITY_DAYS,
-                       ca_cert: File.read(cert_path),
-                       ca_key: File.read(key_path),
-                     )
-                   else
-                     puts "Generating self-signed certificate bundle..."
-                     X509.generate(
-                       common_name: tenant_id,
-                       days: CERT_VALIDITY_DAYS,
-                     )
-                   end
-
           # ── write files ──────────────────────────────────────────────────
           puts "Writing enrollment files to #{Config.dir}..."
           FileUtils.mkdir_p(Config.dir)
           File.chmod(Config.dir, Config::DIR_PERMS)
 
-          write_file(Config.ca_cert_path, bundle.ca_cert)
-          write_file(Config.ca_key_path, bundle.ca_key)
-          write_file(Config.client_cert_path, bundle.client_cert)
-          write_file(Config.client_key_path, bundle.client_key)
           write_file(Config.age_key_path, age_keypair.secret_key.value)
 
           # ── POST /v1/enrollment/enroll ───────────────────────────────────
@@ -170,7 +130,6 @@ module Dirless
             token: opts.token,
             tenant_id: tenant_id,
             age_public_key: age_keypair.public_key.value,
-            ca_cert: bundle.ca_cert,
           )
 
           puts "\n✓ Enrollment complete."
@@ -193,13 +152,11 @@ module Dirless
           token : String,
           tenant_id : String,
           age_public_key : String,
-          ca_cert : String,
         ) : Nil
           parsed_uri = URI.parse("#{server.rstrip("/")}/v1/enrollment/enroll")
           body = {
             tenant_id:      tenant_id,
             age_public_key: age_public_key,
-            ca_cert:        ca_cert,
           }.to_json
 
           client = HTTP::Client.new(parsed_uri)

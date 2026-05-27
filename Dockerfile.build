@@ -1,6 +1,6 @@
 FROM crystallang/crystal:latest-alpine
 
-# age-crystal and x509-crystal are now pure Crystal — no Go toolchain needed.
+# age-crystal is now pure Crystal — no Go toolchain needed.
 RUN apk add --no-cache \
     bash \
     git \

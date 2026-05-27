@@ -12,7 +12,3 @@ shards:
     git: https://github.com/manastech/webmock.cr.git
     version: 0.14.0+git.commit.fde6b20d5b80401a967e044b1a3e80ee391bed60
 
-  x509-crystal:
-    git: https://github.com/dirless/x509-crystal.git
-    version: 0.2.1
-

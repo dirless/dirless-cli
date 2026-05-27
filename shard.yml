@@ -15,10 +15,6 @@ dependencies:
     github: dirless/age-crystal
     version: 0.2.1
 
-  x509-crystal:
-    github: dirless/x509-crystal
-    version: 0.2.1
-
 development_dependencies:
   ameba:
     github: crystal-ameba/ameba
