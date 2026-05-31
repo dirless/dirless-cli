@@ -47,10 +47,11 @@ dirless-cli enroll \
   --server https://<your-subdomain>.dirless.com
 ```
 
+On EC2, the tenant ID is derived automatically: the CLI fetches the AWS account ID from IMDS and computes `aws___HMAC-SHA256(token, account_id)`. This is the same derivation used by dirless-syncer, so both nodes share the same backend identity without manual coordination.
+
 ### Non-AWS environments
 
-On EC2, the tenant ID is derived automatically from the instance identity. For
-non-AWS hosts, pass it explicitly:
+On non-EC2 hosts, pass the tenant ID explicitly:
 
 ```sh
 dirless-cli enroll \
@@ -58,6 +59,17 @@ dirless-cli enroll \
   --token <your-enrollment-token> \
   --server https://<your-subdomain>.dirless.com
 ```
+
+### Re-enrollment (replacing a lost or rotated keypair)
+
+```sh
+dirless-cli enroll \
+  --token <your-enrollment-token> \
+  --server https://<your-subdomain>.dirless.com \
+  --overwrite-existing
+```
+
+This generates a new age keypair and updates the backend. dirless-agent must be restarted with the new key afterwards.
 
 ## Files written to `/etc/dirless/`
 
@@ -67,8 +79,8 @@ dirless-cli enroll \
 | `ca.key`     | CA private key (PEM, 0600)                      |
 | `client.crt` | Client certificate for mTLS (PEM)               |
 | `client.key` | Client private key (PEM, 0600)                  |
-| `age.key`    | Encryption key (0600)                           |
-| `hmac.key`   | Identity key — do not share or delete (0600)    |
+| `age.key`    | age encryption private key (0600)               |
+| `hmac.key`   | Enrollment token — do not share or delete (0600)|
 
 ## License
 
