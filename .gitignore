@@ -1,5 +1,6 @@
 # Build outputs
 dirless-cli
+dirless_cli
 dist/
 
 # Crystal
