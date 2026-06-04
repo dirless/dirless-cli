@@ -106,8 +106,14 @@ module Dirless
                         puts "Fetching AWS account ID from IMDS..."
                         # Use the enrollment token as HMAC key — same as dirless-syncer —
                         # so both nodes derive the same tenant ID and share the same backend DB.
+                        # Derive *before* writing hmac.key so a failed IMDS lookup doesn't
+                        # leave a stray key file behind.
+                        derived = begin
+                          Providers::AWS.tenant_id(opts.token)
+                        rescue ex : Exception
+                          raise EnrollError.new(ex.message || "Failed to derive tenant ID from AWS IMDS.")
+                        end
                         write_file(Config.hmac_key_path, opts.token)
-                        derived = Providers::AWS.tenant_id(opts.token)
                         puts "Derived tenant ID: #{derived}"
                         derived
                       end

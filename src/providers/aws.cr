@@ -47,7 +47,8 @@ module Dirless
         rescue ex : Socket::ConnectError | IO::TimeoutError
           raise "Cannot reach AWS IMDS (#{IMDS_BASE}). " \
                 "Are you running on an EC2 instance? " \
-                "Use --tenant-id to override. (#{ex.message})"
+                "Pass an explicit tenant with 'dirless-cli enroll --tenant-id <id>' to skip IMDS " \
+                "(see 'dirless-cli enroll --help'). (#{ex.message})"
         end
 
         private def self.fetch_account_id(token : String) : String

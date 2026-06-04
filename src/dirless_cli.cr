@@ -3,7 +3,9 @@ require "./commands/enroll"
 
 module Dirless
   module CLI
-    VERSION = "0.1.0"
+    # Single source of truth: read the version straight from shard.yml at
+    # compile time so the binary and the shard can never drift apart.
+    VERSION = {{ read_file("#{__DIR__}/../shard.yml").lines.find(&.starts_with?("version:")).split(":")[1].strip }}
 
     def self.run(args : Array(String)) : Nil
       if args.empty?
