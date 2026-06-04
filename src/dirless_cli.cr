@@ -38,9 +38,12 @@ module Dirless
 
       Commands:
         enroll    Enroll this node with the Dirless backend
+                    --server URL      Enrollment endpoint URL (required)
+                    --token TOKEN     Bearer token issued at account creation (required)
+                    --tenant-id ID    Tenant ID (default: derived from AWS IMDS + HMAC)
         version   Print version
 
-      Run 'dirless-cli <command> --help' for command-specific options.
+      Run 'dirless-cli enroll --help' for the full list of enroll options.
       USAGE
     end
   end
