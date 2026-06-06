@@ -119,8 +119,19 @@ module Dirless
                       end
 
           # ── age keypair ──────────────────────────────────────────────────
-          puts "Generating age keypair..."
-          age_keypair = Age.keygen
+          # Reuse the existing key when re-enrolling with --overwrite-existing
+          # so the backend registration stays consistent. Generate a new key
+          # only when no key file exists yet.
+          age_keypair = if opts.overwrite? && File.exists?(Config.age_key_path)
+                          puts "Reusing existing age keypair..."
+                          sk = Age::SecretKey.new(File.read(Config.age_key_path).strip)
+                          _, sec_bytes = Age::Bech32.decode(sk.value)
+                          pub_bytes = Age::X25519.public_from_private(sec_bytes)
+                          Age::Keypair.new(Age::PublicKey.new(Age::Bech32.encode("age", pub_bytes)), sk)
+                        else
+                          puts "Generating age keypair..."
+                          Age.keygen
+                        end
 
           # ── write files ──────────────────────────────────────────────────
           puts "Writing enrollment files to #{Config.dir}..."
