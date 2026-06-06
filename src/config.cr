@@ -17,6 +17,10 @@ module Dirless
         File.join(@@dir, "hmac.key")
       end
 
+      def self.agent_config_path : String
+        File.join(@@dir, "dirless-agent.toml")
+      end
+
       def self.enrollment_files : Array(String)
         [age_key_path]
       end

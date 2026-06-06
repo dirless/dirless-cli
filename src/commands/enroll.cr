@@ -138,9 +138,44 @@ module Dirless
             age_public_key: age_keypair.public_key.value,
           )
 
+          # ── write agent config ───────────────────────────────────────────
+          write_agent_config(
+            path: Config.agent_config_path,
+            server: opts.server,
+            token: opts.token,
+            tenant_id: tenant_id,
+          )
+
           puts "\n✓ Enrollment complete."
           puts "  Tenant ID : #{tenant_id}"
           puts "  Files     : #{Config.dir}/"
+          puts "\nTo start the agent:"
+          puts "  systemctl enable --now dirless-agent"
+        end
+
+        private def write_agent_config(path : String, server : String,
+                                       token : String, tenant_id : String) : Nil
+          content = String.build do |io|
+            io << "[backend]\n"
+            io << "url = #{server.inspect}\n"
+            io << "\n"
+            io << "[agent]\n"
+            io << "id                     = #{System.hostname.inspect}\n"
+            io << "interval_seconds       = 60\n"
+            io << "probe_interval_seconds = 60\n"
+            io << "readmit_after_seconds  = 300\n"
+            io << "probe_timeout_seconds  = 5\n"
+            io << "fetch_timeout_seconds  = 30\n"
+            io << "\n"
+            io << "[auth]\n"
+            io << "hmac_secret = #{token.inspect}\n"
+            io << "tenant_id   = #{tenant_id.inspect}\n"
+            io << "\n"
+            io << "[local]\n"
+            io << "db_path      = \"/var/lib/dirless/local.db\"\n"
+            io << "age_key_path = #{Config.age_key_path.inspect}\n"
+          end
+          write_file(path, content)
         end
 
         private def require_opt(value : String?, flag : String) : String
