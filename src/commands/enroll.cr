@@ -194,8 +194,8 @@ module Dirless
               "Error: unexpected response from server (HTTP #{response.status_code}): #{response.body}"
             )
           end
-        rescue ex : Socket::ConnectError | IO::TimeoutError
-          raise EnrollError.new("Error: could not connect to #{server}. (#{ex.message})")
+        rescue ex : Socket::Error | IO::TimeoutError
+          raise EnrollError.new("Error: could not connect to #{server} — #{ex.message}")
         end
 
         private def warn_hmac_regeneration : Nil
