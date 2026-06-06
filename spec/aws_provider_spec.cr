@@ -83,7 +83,7 @@ describe Dirless::CLI::Providers::AWS do
       WebMock.stub(:put, "169.254.169.254/latest/api/token")
         .to_return(status: 200, body: IMDS_TOKEN_RESPONSE)
 
-      # 11 digits — invalid AWS account ID format
+      # 11 digits - invalid AWS account ID format
       WebMock.stub(:get, "169.254.169.254/latest/dynamic/instance-identity/document")
         .to_return(status: 200, body: {"accountId" => "12345678901"}.to_json)
 

@@ -166,7 +166,7 @@ describe Dirless::CLI::Commands::Enroll do
 
       with_enroll_tmpdir do |dir|
         Dirless::CLI::Config.with_dir(dir) do
-          # Should not raise — the stub only matches if the header is present
+          # Should not raise - the stub only matches if the header is present
           Dirless::CLI::Commands::Enroll.new.run(
             enroll_args(dir, ["--tenant-id", "test-tenant-123"])
           )
@@ -224,7 +224,7 @@ describe Dirless::CLI::Commands::Enroll do
 
   describe "tenant ID" do
     it "uses the provided --tenant-id directly without hitting IMDS" do
-      # No IMDS stub — if IMDS is hit, WebMock will raise
+      # No IMDS stub - if IMDS is hit, WebMock will raise
       stub_backend(200, {"status" => "enrolled"}.to_json)
 
       with_enroll_tmpdir do |dir|
@@ -242,7 +242,7 @@ describe Dirless::CLI::Commands::Enroll do
 
       with_enroll_tmpdir do |dir|
         Dirless::CLI::Config.with_dir(dir) do
-          # Should complete without error — IMDS stubs provide the account ID
+          # Should complete without error - IMDS stubs provide the account ID
           Dirless::CLI::Commands::Enroll.new.run(enroll_args(dir))
         end
       end

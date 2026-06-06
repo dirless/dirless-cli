@@ -62,7 +62,7 @@ module Dirless
             parser.on("--overwrite-existing",
               "Overwrite existing enrollment files") { overwrite = true }
             parser.on("--regenerate-hmac",
-              "Generate a new HMAC secret (WARNING: changes tenant identity — " \
+              "Generate a new HMAC secret (WARNING: changes tenant identity - " \
               "requires --overwrite-existing)") { regenerate_hmac = true }
             parser.on("-h", "--help", "Show this help") do
               puts parser
@@ -104,7 +104,7 @@ module Dirless
                         tid
                       else
                         puts "Fetching AWS account ID from IMDS..."
-                        # Use the enrollment token as HMAC key — same as dirless-syncer —
+                        # Use the enrollment token as HMAC key - same as dirless-syncer -
                         # so both nodes derive the same tenant ID and share the same backend DB.
                         # Derive *before* writing hmac.key so a failed IMDS lookup doesn't
                         # leave a stray key file behind.
@@ -228,15 +228,15 @@ module Dirless
             parsed = JSON.parse(response.body)
             puts "  Backend response: #{parsed["status"]?}"
           when 401
-            raise EnrollError.new("Error: invalid token — check --token matches the backend hmac_secret")
+            raise EnrollError.new("Error: invalid token - check --token matches the backend hmac_secret")
           when 403
             parsed = JSON.parse(response.body)
-            raise EnrollError.new("Error: enrollment rejected — #{parsed["error"]?}")
+            raise EnrollError.new("Error: enrollment rejected - #{parsed["error"]?}")
           when 409
             parsed = JSON.parse(response.body)
             registered = parsed["registered_key"]?.try(&.as_s?) || "(unknown)"
             raise EnrollError.new(
-              "Error: age key mismatch — the backend already has a different key registered for this tenant.\n" \
+              "Error: age key mismatch - the backend already has a different key registered for this tenant.\n" \
               "  Registered key : #{registered}\n" \
               "  This host's key: #{age_public_key}\n\n" \
               "This means the host was re-enrolled and a new keypair was generated, but the\n" \
@@ -247,14 +247,14 @@ module Dirless
             )
           when 422
             parsed = JSON.parse(response.body)
-            raise EnrollError.new("Error: invalid request — #{parsed["error"]?}")
+            raise EnrollError.new("Error: invalid request - #{parsed["error"]?}")
           else
             raise EnrollError.new(
               "Error: unexpected response from server (HTTP #{response.status_code}): #{response.body}"
             )
           end
         rescue ex : Socket::Error | IO::TimeoutError | OpenSSL::SSL::Error
-          raise EnrollError.new("Error: could not connect to #{server} — #{ex.message}")
+          raise EnrollError.new("Error: could not connect to #{server} - #{ex.message}")
         end
 
         private def warn_hmac_regeneration : Nil
