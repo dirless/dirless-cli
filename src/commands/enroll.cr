@@ -194,7 +194,7 @@ module Dirless
               "Error: unexpected response from server (HTTP #{response.status_code}): #{response.body}"
             )
           end
-        rescue ex : Socket::Error | IO::TimeoutError
+        rescue ex : Socket::Error | IO::TimeoutError | OpenSSL::SSL::Error
           raise EnrollError.new("Error: could not connect to #{server} — #{ex.message}")
         end
 
