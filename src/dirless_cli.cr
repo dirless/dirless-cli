@@ -1,5 +1,6 @@
 require "option_parser"
 require "./commands/enroll"
+require "./commands/rotate_key"
 
 module Dirless
   module CLI
@@ -18,6 +19,8 @@ module Dirless
       case subcommand
       when "enroll"
         Commands::Enroll.run(args)
+      when "rotate-key"
+        Commands::RotateKey.run(args)
       when "version", "--version", "-v"
         puts VERSION
       when "help", "--help", "-h"
@@ -37,13 +40,15 @@ module Dirless
         dirless-cli <command> [options]
 
       Commands:
-        enroll    Enroll this node with the Dirless backend
-                    --server URL      Enrollment endpoint URL (required)
-                    --token TOKEN     Bearer token issued at account creation (required)
-                    --tenant-id ID    Tenant ID (default: derived from AWS IMDS + HMAC)
-        version   Print version
+        enroll      Enroll this node with the Dirless backend
+                      --server URL      Enrollment endpoint URL (required)
+                      --token TOKEN     Bearer token issued at account creation (required)
+                      --tenant-id ID    Tenant ID (default: derived from AWS IMDS + HMAC)
+        rotate-key  Update the backend's registered age public key to match this host's key
+                      (fixes age key mismatch errors after re-enrollment)
+        version     Print version
 
-      Run 'dirless-cli enroll --help' for the full list of enroll options.
+      Run 'dirless-cli <command> --help' for command-specific options.
       USAGE
     end
   end

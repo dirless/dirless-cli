@@ -1,5 +1,5 @@
 name: dirless-cli
-version: 0.2.10
+version: 0.3.0
 
 description: CLI for enrolling and managing Dirless identity nodes
 
@@ -14,6 +14,8 @@ dependencies:
   age-crystal:
     github: dirless/age-crystal
     version: 0.2.1
+  toml:
+    github: crystal-community/toml.cr
 
 development_dependencies:
   ameba:
