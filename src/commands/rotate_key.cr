@@ -55,14 +55,15 @@ module Dirless
           unless force
             STDERR.puts ""
             STDERR.puts "┌─────────────────────────────────────────────────────────────┐"
-            STDERR.puts "│                      ⚠  WARNING  ⚠                          │"
+            STDERR.puts "│                         WARNING                              │"
             STDERR.puts "│                                                              │"
             STDERR.puts "│  This will update the registered age public key on the      │"
-            STDERR.puts "│  backend to match THIS host's key.                          │"
+            STDERR.puts "│  backend to match the key on this host:                     │"
+            STDERR.puts "│    #{age_key_path}"
             STDERR.puts "│                                                              │"
             STDERR.puts "│  All other enrolled nodes sharing this tenant will need     │"
-            STDERR.puts "│  their age.key updated to match before they can decrypt     │"
-            STDERR.puts "│  snapshots.                                                 │"
+            STDERR.puts "│  their key file updated to match and dirless-agent          │"
+            STDERR.puts "│  restarted before they can decrypt snapshots.               │"
             STDERR.puts "│                                                              │"
             STDERR.puts "│  Only proceed if you intended to change the key, or if      │"
             STDERR.puts "│  this is the only enrolled node for this tenant.            │"
@@ -94,9 +95,11 @@ module Dirless
 
           case response.status_code
           when 200
-            puts "\n✓ Backend key updated."
+            puts "Backend key updated."
             puts "  The next syncer push will re-encrypt snapshots for this host."
             puts "  Re-save any portal-managed local users to re-encrypt them for the new key."
+            puts "  On any other enrolled nodes: copy #{age_key_path} from this host,"
+            puts "  then run: systemctl restart dirless-agent"
           when 401
             raise RotateKeyError.new("Error: unauthorized - check the token in #{config_path}")
           when 422
