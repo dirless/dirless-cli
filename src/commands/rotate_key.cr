@@ -21,10 +21,12 @@ module Dirless
 
         def run(args : Array(String)) : Nil
           config_path = Config.agent_config_path
+          force = false
 
           OptionParser.parse(args) do |parser|
             parser.banner = "Usage: dirless-cli rotate-key [options]"
             parser.on("--config PATH", "Agent config file (default: #{config_path})") { |v| config_path = v }
+            parser.on("--force", "Skip confirmation prompt") { force = true }
             parser.on("-h", "--help", "Show this help") { puts parser; exit 0 }
           end
 
@@ -49,6 +51,28 @@ module Dirless
           _, sec_bytes   = Age::Bech32.decode(secret_key_str)
           pub_bytes      = Age::X25519.public_from_private(sec_bytes)
           public_key     = Age::Bech32.encode("age", pub_bytes)
+
+          unless force
+            STDERR.puts ""
+            STDERR.puts "┌─────────────────────────────────────────────────────────────┐"
+            STDERR.puts "│                      ⚠  WARNING  ⚠                          │"
+            STDERR.puts "│                                                              │"
+            STDERR.puts "│  This will update the registered age public key on the      │"
+            STDERR.puts "│  backend to match THIS host's key.                          │"
+            STDERR.puts "│                                                              │"
+            STDERR.puts "│  All other enrolled nodes sharing this tenant will need     │"
+            STDERR.puts "│  their age.key updated to match before they can decrypt     │"
+            STDERR.puts "│  snapshots.                                                 │"
+            STDERR.puts "│                                                              │"
+            STDERR.puts "│  Only proceed if you intended to change the key, or if      │"
+            STDERR.puts "│  this is the only enrolled node for this tenant.            │"
+            STDERR.puts "└─────────────────────────────────────────────────────────────┘"
+            STDERR.puts ""
+            STDERR.print "Type 'yes' to confirm: "
+            response = STDIN.gets.try(&.strip)
+            raise RotateKeyError.new("Aborted.") unless response == "yes"
+            STDERR.puts ""
+          end
 
           puts "Host age public key : #{public_key}"
           puts "Updating backend at : #{backend_url}"
