@@ -241,8 +241,8 @@ module Dirless
               "  This host's key: #{age_public_key}\n\n" \
               "This means the host was re-enrolled and a new keypair was generated, but the\n" \
               "backend still holds the original key. Snapshots will fail to decrypt until resolved.\n\n" \
-              "To fix: rotate the key on the backend with the Dirless ops portal or API\n" \
-              "  PUT /v1/snapshot/public-key  {\"age_public_key\": \"#{age_public_key}\"}\n" \
+              "To fix, run:\n" \
+              "  dirless-cli rotate-key\n" \
               "and then re-save any portal-managed local users."
             )
           when 422
