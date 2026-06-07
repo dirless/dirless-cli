@@ -20,28 +20,40 @@ module Dirless
         end
 
         def run(args : Array(String)) : Nil
-          config_path = Config.agent_config_path
-          force = false
+          config_path  = Config.agent_config_path
+          force        = false
+          opt_server   : String? = nil
+          opt_token    : String? = nil
+          opt_tenant   : String? = nil
 
           OptionParser.parse(args) do |parser|
             parser.banner = "Usage: dirless-cli rotate-key [options]"
-            parser.on("--config PATH", "Agent config file (default: #{config_path})") { |v| config_path = v }
-            parser.on("--force", "Skip confirmation prompt") { force = true }
+            parser.on("--config PATH",    "Agent config file (default: #{config_path})") { |v| config_path = v }
+            parser.on("--server URL",     "Backend URL (overrides config)") { |v| opt_server = v }
+            parser.on("--token TOKEN",    "Bearer token (overrides config)") { |v| opt_token = v }
+            parser.on("--tenant-id ID",   "Tenant ID (overrides config)") { |v| opt_tenant = v }
+            parser.on("--force",          "Skip confirmation prompt") { force = true }
             parser.on("-h", "--help", "Show this help") { puts parser; exit 0 }
           end
 
-          unless File.exists?(config_path)
-            raise RotateKeyError.new(
-              "Error: agent config not found at #{config_path}\n" \
-              "Is this node enrolled? Run 'dirless-cli enroll' first."
-            )
-          end
-
-          toml = TOML.parse(File.read(config_path))
-          backend_url = toml["backend"]["url"].as_s
-          hmac_secret = toml["auth"]["hmac_secret"].as_s
-          tenant_id   = toml["auth"]["tenant_id"].as_s
-          age_key_path = toml["local"]["age_key_path"].as_s
+          backend_url, hmac_secret, tenant_id, age_key_path =
+            if opt_server && opt_token && opt_tenant
+              {opt_server.not_nil!, opt_token.not_nil!, opt_tenant.not_nil!, Config.age_key_path}
+            else
+              unless File.exists?(config_path)
+                raise RotateKeyError.new(
+                  "Error: agent config not found at #{config_path}\n" \
+                  "Pass --server, --token, and --tenant-id to run without a config file."
+                )
+              end
+              toml = TOML.parse(File.read(config_path))
+              {
+                toml["backend"]["url"].as_s,
+                toml["auth"]["hmac_secret"].as_s,
+                toml["auth"]["tenant_id"].as_s,
+                toml["local"]["age_key_path"].as_s,
+              }
+            end
 
           unless File.exists?(age_key_path)
             raise RotateKeyError.new("Error: age key not found at #{age_key_path}")

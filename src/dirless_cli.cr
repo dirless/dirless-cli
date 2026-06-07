@@ -46,6 +46,9 @@ module Dirless
                       --tenant-id ID    Tenant ID (default: derived from AWS IMDS + HMAC)
         rotate-key  Update the backend's registered age public key to match this host's key
                       (fixes age key mismatch errors after re-enrollment)
+                      --server URL      Backend URL (if no agent config exists yet)
+                      --token TOKEN     Bearer token (if no agent config exists yet)
+                      --tenant-id ID    Tenant ID (if no agent config exists yet)
                       --force           Skip confirmation prompt
         version     Print version
 
