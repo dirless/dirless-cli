@@ -58,7 +58,7 @@ module Dirless
             STDERR.puts "  WARNING"
             STDERR.puts ""
             STDERR.puts "  This will update the registered age public key on the"
-            STDERR.puts "  backend to match the key on this host:"
+            STDERR.puts "  backend to match the private key on this host:"
             STDERR.puts "    #{age_key_path}"
             STDERR.puts ""
             STDERR.puts "  All other enrolled nodes sharing this tenant will need"
