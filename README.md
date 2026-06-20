@@ -31,7 +31,6 @@ curl -fsSL https://github.com/dirless/dirless-cli/releases/latest/download/dirle
 # aarch64
 curl -fsSL https://github.com/dirless/dirless-cli/releases/latest/download/dirless-cli-aarch64 \
   -o /usr/local/bin/dirless-cli
-
 chmod +x /usr/local/bin/dirless-cli
 ```
 
