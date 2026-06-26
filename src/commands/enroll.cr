@@ -17,6 +17,7 @@ module Dirless
         getter token : String
         getter server : String
         getter tenant_id : String?
+        getter age_key_path : String?
         getter? overwrite : Bool
         getter? regenerate_hmac : Bool
 
@@ -24,6 +25,7 @@ module Dirless
           @token : String,
           @server : String,
           @tenant_id : String?,
+          @age_key_path : String?,
           @overwrite : Bool,
           @regenerate_hmac : Bool,
         )
@@ -47,18 +49,21 @@ module Dirless
           token : String? = nil
           server : String? = nil
           tenant_id : String? = nil
+          age_key_path : String? = nil
           overwrite = false
           regenerate_hmac = false
 
           OptionParser.parse(args) do |parser|
             parser.banner = "Usage: dirless-cli enroll [options]"
 
-            parser.on("--tenant-id ID",
-              "Tenant ID (default: derived from AWS IMDS + HMAC)") { |v| tenant_id = v }
             parser.on("--token TOKEN",
               "Bearer token issued at account creation (required)") { |v| token = v }
             parser.on("--server URL",
               "Enrollment endpoint URL (required)") { |v| server = v }
+            parser.on("--age-key PATH",
+              "Path to your age private key file (AGE-SECRET-KEY-1...) (required)") { |v| age_key_path = v }
+            parser.on("--tenant-id ID",
+              "Tenant ID (default: derived from AWS IMDS + HMAC)") { |v| tenant_id = v }
             parser.on("--overwrite-existing",
               "Overwrite existing enrollment files") { overwrite = true }
             parser.on("--regenerate-hmac",
@@ -81,6 +86,7 @@ module Dirless
             token: resolved_token,
             server: resolved_server,
             tenant_id: tenant_id,
+            age_key_path: age_key_path,
             overwrite: overwrite,
             regenerate_hmac: regenerate_hmac,
           )
@@ -119,18 +125,39 @@ module Dirless
                       end
 
           # ── age keypair ──────────────────────────────────────────────────
-          # Reuse the existing key when re-enrolling with --overwrite-existing
-          # so the backend registration stays consistent. Generate a new key
-          # only when no key file exists yet.
-          age_keypair = if opts.overwrite? && File.exists?(Config.age_key_path)
-                          puts "Reusing existing age keypair..."
+          # Read the key from --age-key if provided, otherwise reuse the
+          # existing key on disk (re-enrollment). Never auto-generate a key:
+          # the user must own and manage it.
+          age_keypair = if key_path = opts.age_key_path
+                          unless File.exists?(key_path)
+                            raise EnrollError.new("Error: age key file not found: #{key_path}")
+                          end
+                          puts "Reading age key from #{key_path}..."
+                          sk_str = File.read(key_path).strip
+                          unless sk_str.starts_with?("AGE-SECRET-KEY-1")
+                            raise EnrollError.new(
+                              "Error: #{key_path} does not look like an age private key.\n" \
+                              "Expected a line starting with AGE-SECRET-KEY-1.\n" \
+                              "Generate one at https://dirless.com/age-keypair.html"
+                            )
+                          end
+                          sk = Age::SecretKey.new(sk_str)
+                          _, sec_bytes = Age::Bech32.decode(sk.value)
+                          pub_bytes = Age::X25519.public_from_private(sec_bytes)
+                          Age::Keypair.new(Age::PublicKey.new(Age::Bech32.encode("age", pub_bytes)), sk)
+                        elsif opts.overwrite? && File.exists?(Config.age_key_path)
+                          puts "Reusing existing age key at #{Config.age_key_path}..."
                           sk = Age::SecretKey.new(File.read(Config.age_key_path).strip)
                           _, sec_bytes = Age::Bech32.decode(sk.value)
                           pub_bytes = Age::X25519.public_from_private(sec_bytes)
                           Age::Keypair.new(Age::PublicKey.new(Age::Bech32.encode("age", pub_bytes)), sk)
                         else
-                          puts "Generating age keypair..."
-                          Age.keygen
+                          raise EnrollError.new(
+                            "Error: --age-key is required.\n\n" \
+                            "Generate an age keypair at https://dirless.com/age-keypair.html\n" \
+                            "then pass the downloaded private key file:\n\n" \
+                            "  dirless-cli enroll --age-key /path/to/dirless-age.key --token ... --server ..."
+                          )
                         end
 
           # ── write files ──────────────────────────────────────────────────
@@ -158,8 +185,9 @@ module Dirless
           )
 
           puts "\n✓ Enrollment complete."
-          puts "  Tenant ID : #{tenant_id}"
-          puts "  Files     : #{Config.dir}/"
+          puts "  Tenant ID  : #{tenant_id}"
+          puts "  Age key    : #{age_keypair.public_key.value}"
+          puts "  Files      : #{Config.dir}/"
           puts "\nTo start the agent:"
           puts "  systemctl enable --now dirless-agent"
         end
