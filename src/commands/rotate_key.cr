@@ -38,7 +38,7 @@ module Dirless
 
           backend_url, hmac_secret, tenant_id, age_key_path =
             if opt_server && opt_token && opt_tenant
-              {opt_server.not_nil!, opt_token.not_nil!, opt_tenant.not_nil!, Config.age_key_path}
+              {opt_server.as(String), opt_token.as(String), opt_tenant.as(String), Config.age_key_path}
             else
               unless File.exists?(config_path)
                 raise RotateKeyError.new(

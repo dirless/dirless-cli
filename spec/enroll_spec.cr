@@ -35,9 +35,17 @@ def with_enroll_tmpdir(extra_args : Array(String) = [] of String, &)
   end
 end
 
-# Helper that builds a minimal valid args list pointing at a given dir
+# Helper that builds a minimal valid args list pointing at a given dir.
+# Generates a fresh age keypair and writes it to a temp file in dir so
+# every test has a valid --age-key without hitting the network.
 def enroll_args(dir : String, extra : Array(String) = [] of String) : Array(String)
-  ["--token", "test-bearer-token", "--server", ENROLL_SERVER] + extra
+  age_key_file = File.join(dir, "input-age.key")
+  unless File.exists?(age_key_file)
+    keypair = Age.keygen
+    File.write(age_key_file, keypair.secret_key.value)
+    File.chmod(age_key_file, 0o600)
+  end
+  ["--token", "test-bearer-token", "--server", ENROLL_SERVER, "--age-key", age_key_file] + extra
 end
 
 describe Dirless::CLI::Commands::Enroll do
