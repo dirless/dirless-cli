@@ -10,8 +10,6 @@ module Dirless
         IMDS_TOKEN    = "#{IMDS_BASE}/latest/api/token"
         IMDS_IDENTITY = "#{IMDS_BASE}/latest/dynamic/instance-identity/document"
         TOKEN_TTL     = "21600" # seconds (6 hours, standard value)
-        PREFIX        = "aws___"
-
         # Fetches the AWS account ID from IMDSv2.
         # Raises if IMDS is unreachable or the response is malformed.
         def self.account_id : String
@@ -19,11 +17,10 @@ module Dirless
           fetch_account_id(token)
         end
 
-        # Derives the tenant ID: "aws___" + hmac_hex(hmac_secret, account_id)
+        # Derives the tenant ID: hmac_hex(hmac_secret, account_id)
         def self.tenant_id(hmac_secret : String) : String
           id = account_id
-          hashed = OpenSSL::HMAC.hexdigest(:sha256, hmac_secret, id)
-          "#{PREFIX}#{hashed}"
+          OpenSSL::HMAC.hexdigest(:sha256, hmac_secret, id)
         end
 
         private def self.new_imds_client : HTTP::Client

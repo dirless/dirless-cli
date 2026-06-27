@@ -106,18 +106,18 @@ describe Dirless::CLI::Providers::AWS do
   end
 
   describe ".tenant_id" do
-    it "returns a string prefixed with aws___" do
+    it "returns a 64-char hex string (SHA-256 HMAC)" do
       stub_imds_happy_path
       id = Dirless::CLI::Providers::AWS.tenant_id("test-secret")
-      id.should start_with("aws___")
+      id.size.should eq(64)
+      id.should match(/\A[0-9a-f]+\z/)
     end
 
-    it "produces a 64-char hex HMAC suffix (SHA-256)" do
+    it "produces a 64-char hex HMAC (SHA-256)" do
       stub_imds_happy_path
       id = Dirless::CLI::Providers::AWS.tenant_id("test-secret")
-      suffix = id.lchop("aws___")
-      suffix.size.should eq(64)
-      suffix.should match(/\A[0-9a-f]+\z/)
+      id.size.should eq(64)
+      id.should match(/\A[0-9a-f]+\z/)
     end
 
     it "is deterministic for the same secret and account ID" do
