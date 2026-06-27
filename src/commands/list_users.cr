@@ -51,7 +51,7 @@ module Dirless
           puts header
           puts divider
           if excluded.empty?
-            puts "  (none — enforcement may be disabled)"
+            puts "  (none)"
           else
             excluded.each do |username, uid, gid, home, shell|
               puts "%-32s %6s %6s  %-24s  %s" % [username, uid, gid, home, shell]
