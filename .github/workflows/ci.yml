@@ -20,15 +20,10 @@ jobs:
 
   spec:
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.crystal == 'nightly' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        crystal: [latest, nightly]
     steps:
       - uses: actions/checkout@v4
       - uses: crystal-lang/install-crystal@v1
         with:
-          crystal: ${{ matrix.crystal }}
+          crystal: latest
       - run: shards install
       - run: crystal spec
