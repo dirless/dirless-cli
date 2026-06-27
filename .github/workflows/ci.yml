@@ -20,7 +20,9 @@ jobs:
 
   spec:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.crystal == 'nightly' }}
     strategy:
+      fail-fast: false
       matrix:
         crystal: [latest, nightly]
     steps:

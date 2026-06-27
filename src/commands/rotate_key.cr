@@ -20,19 +20,19 @@ module Dirless
         end
 
         def run(args : Array(String)) : Nil
-          config_path  = Config.agent_config_path
-          force        = false
-          opt_server   : String? = nil
-          opt_token    : String? = nil
-          opt_tenant   : String? = nil
+          config_path = Config.agent_config_path
+          force = false
+          opt_server : String? = nil
+          opt_token : String? = nil
+          opt_tenant : String? = nil
 
           OptionParser.parse(args) do |parser|
             parser.banner = "Usage: dirless-cli rotate-key [options]"
-            parser.on("--config PATH",    "Agent config file (default: #{config_path})") { |v| config_path = v }
-            parser.on("--server URL",     "Backend URL (overrides config)") { |v| opt_server = v }
-            parser.on("--token TOKEN",    "Bearer token (overrides config)") { |v| opt_token = v }
-            parser.on("--tenant-id ID",   "Tenant ID (overrides config)") { |v| opt_tenant = v }
-            parser.on("--force",          "Skip confirmation prompt") { force = true }
+            parser.on("--config PATH", "Agent config file (default: #{config_path})") { |v| config_path = v }
+            parser.on("--server URL", "Backend URL (overrides config)") { |v| opt_server = v }
+            parser.on("--token TOKEN", "Bearer token (overrides config)") { |v| opt_token = v }
+            parser.on("--tenant-id ID", "Tenant ID (overrides config)") { |v| opt_tenant = v }
+            parser.on("--force", "Skip confirmation prompt") { force = true }
             parser.on("-h", "--help", "Show this help") { puts parser; exit 0 }
           end
 
@@ -60,9 +60,9 @@ module Dirless
           end
 
           secret_key_str = File.read(age_key_path).strip
-          _, sec_bytes   = Age::Bech32.decode(secret_key_str)
-          pub_bytes      = Age::X25519.public_from_private(sec_bytes)
-          public_key     = Age::Bech32.encode("age", pub_bytes)
+          _, sec_bytes = Age::Bech32.decode(secret_key_str)
+          pub_bytes = Age::X25519.public_from_private(sec_bytes)
+          public_key = Age::Bech32.encode("age", pub_bytes)
 
           unless force
             STDERR.puts ""
@@ -90,7 +90,7 @@ module Dirless
           puts "Host age public key : #{public_key}"
           puts "Updating backend at : #{backend_url}"
 
-          uri    = URI.parse("#{backend_url.rstrip("/")}/v1/snapshot/public-key")
+          uri = URI.parse("#{backend_url.rstrip("/")}/v1/snapshot/public-key")
           client = HTTP::Client.new(uri)
           client.connect_timeout = 10.seconds
           client.read_timeout = 30.seconds
