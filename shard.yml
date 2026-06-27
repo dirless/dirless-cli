@@ -1,5 +1,5 @@
 name: dirless-cli
-version: 0.3.7
+version: 0.3.8
 
 description: CLI for enrolling and managing Dirless identity nodes
 
@@ -16,6 +16,9 @@ dependencies:
     version: 0.2.1
   toml:
     github: crystal-community/toml.cr
+  trash-panda-db:
+    github: dirless/trash-panda-db
+    version: "~> 0.8.10"
 
 development_dependencies:
   ameba:

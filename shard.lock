@@ -8,9 +8,17 @@ shards:
     git: https://github.com/crystal-ameba/ameba.git
     version: 1.6.4
 
+  db:
+    git: https://github.com/crystal-lang/crystal-db.git
+    version: 0.14.0
+
   toml:
     git: https://github.com/crystal-community/toml.cr.git
     version: 0.8.1
+
+  trash-panda-db:
+    git: https://github.com/dirless/trash-panda-db.git
+    version: 0.8.10
 
   webmock:
     git: https://github.com/manastech/webmock.cr.git

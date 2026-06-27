@@ -1,6 +1,7 @@
 require "option_parser"
 require "./commands/enroll"
 require "./commands/rotate_key"
+require "./commands/list_users"
 
 module Dirless
   module CLI
@@ -21,6 +22,8 @@ module Dirless
         Commands::Enroll.run(args)
       when "rotate-key"
         Commands::RotateKey.run(args)
+      when "list-users"
+        Commands::ListUsers.run
       when "version", "--version", "-v"
         puts VERSION
       when "help", "--help", "-h"
@@ -50,6 +53,7 @@ module Dirless
                       --token TOKEN     Bearer token (if no agent config exists yet)
                       --tenant-id ID    Tenant ID (if no agent config exists yet)
                       --force           Skip confirmation prompt
+        list-users  List users from the local agent snapshot
         version     Print version
 
       Run 'dirless-cli <command> --help' for command-specific options.
